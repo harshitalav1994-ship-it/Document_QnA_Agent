@@ -199,7 +199,7 @@ The prompt-injection vector specifically: even with the prompt-level mitigation,
 - OpenTelemetry traces/metrics/logs instead of ad-hoc callbacks
 - Per-tenant cost dashboards
 
-**Developer experience**
+**Additional notes**
 - Prompts in a proper registry (Langfuse) with deploy gates tied to eval
 - ADRs for every notable decision, kept current
 - A small `eval-watch` CLI that runs the eval set against a candidate prompt or model and prints a diff vs baseline
