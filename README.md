@@ -80,9 +80,6 @@ python -m scripts.run_eval      # exits non-zero on regression
 │   │  in-memory store: dict[doc_id, FAISS]   │                 │
 │   └─────────────────────────────────────────┘                 │
 │                                                               │
-│   cross-cutting: request-id middleware, token/latency/cost    │
-│   callback, structured JSON logs, pydantic validation,        │
-│   exception handlers, optional LangSmith                      │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -103,8 +100,6 @@ scripts/                 eval cases + Ragas runner with CI exit code
 decisions/               ADRs for choices that mattered
 ```
 
-The split is deliberate: `services/` is what AI engineers touch, `core/` is what platform engineers touch, `observability/` is cross-cutting, `prompts/` is data masquerading as code. Three different people could own three folders without colliding.
-
 ## How the rubric maps to the code
 
 | Area | Where |
@@ -123,11 +118,11 @@ The split is deliberate: `services/` is what AI engineers touch, `core/` is what
 
 ### Provider abstraction (`get_llm`)
 
-One function, three providers, switched by env. See [ADR 001](decisions/001-provider-abstraction.md). The point isn't supporting three providers; it's that adding the fourth is a one-line change.
+One function, three providers, switched by env. See [ADR 001](decisions/001-provider-abstraction.md). The point is not supporting three providers; it's that adding the fourth is a one-line change.
 
 ### Short-circuit on empty retrieval
 
-A meaningful slice of real Q&A traffic is out-of-scope questions. The agent now runs a pre-flight similarity search and returns the canonical refusal directly if nothing is relevant. Skips the LLM round trip entirely on the unhappy path — that's the request type you most want to make cheap. See [ADR 002](decisions/002-retrieval-short-circuit.md).
+A meaningful piece of real Q&A traffic is out-of-scope questions. The agent now runs a pre-flight similarity search and returns the canonical refusal directly if nothing is relevant. Skips the LLM round trip entirely on the refusal path — that's the request type you most want to make cheap. See [ADR 002](decisions/002-retrieval-short-circuit.md).
 
 The threshold is unprincipled (a guess on L2 distance), and that's flagged in the ADR. The right way is to tune on the eval set, which is the immediate next step.
 
@@ -153,10 +148,10 @@ Three test cases (direct fact, multi-fact synthesis, refusal) is a smoke test, n
 
 What a real eval pipeline for this service looks like:
 
-- **Golden set.** 30-100 hand-curated questions across the document corpus, refreshed monthly. Owned by a single eval engineer.
+- **Manual set.** 30-100 human questions across the document corpus, refreshed monthly. Owned by a single eval engineer.
 - **Synthetic set.** LLM-generated questions from each document, validated by humans before admission. Catches blind spots in the golden set.
 - **Production-replay set.** Sampled real questions (PII-scrubbed) with answers re-evaluated. Catches drift.
-- **Metrics.** Faithfulness (hallucination), context precision (retrieval signal), context recall (retrieval completeness), answer relevance (usefulness), refusal correctness (false-refusal and missed-refusal rates).
+- **Metrics.** Faithfulness (hallucination), context precision (retrieval signal), context recall (retrieval completeness), answer relevance (usefulness), refusal correctness (false-refusal and missed-refusal rates); business metrics to prove real-world relevance of the service
 - **Grader independence.** The grader model must not be the system under test. This demo violates that to stay single-key — fix is one line.
 - **CI policy.** Eval runs on every PR to `app/services/` or `app/prompts/`. Regression on any metric beyond a configurable floor fails the build. Trends tracked over time.
 - **Goodhart guard.** Rotate a holdout subset of the golden set quarterly so we don't overfit to what we measure.
@@ -182,31 +177,29 @@ The prompt-injection vector specifically: even with the prompt-level mitigation,
 
 ## What I'd build next
 
-Grouped by theme, sized for honesty.
-
 **Quality (highest impact)**
-- Tune the retrieval distance floor against the eval set. Half a day.
-- Expand eval to 30+ curated cases, add context recall + answer relevance + refusal-correctness metrics. 2-3 days.
-- Use a stronger model as the eval grader, distinct from the SUT. Day.
-- Hybrid retrieval (dense + BM25) + cross-encoder reranking. ~3 days, measured against eval.
+- Tune the retrieval distance floor against the eval set
+- Expand eval to 30+ curated cases, add context recall + answer relevance + refusal-correctness metrics
+- Use a stronger model as the eval grader, distinct from the System Under Test
+- Hybrid retrieval (dense + BM25) + cross-encoder reranking
 
 **Reliability**
-- Replace the in-memory store with pgvector. 2 days including migrations.
-- Provider fallback in `get_llm` — Groq primary, Anthropic secondary. Half a day.
-- Circuit breaker + timeouts on the LLM call. Half a day.
-- Multi-worker support (currently single-process due to the in-memory store; the pgvector swap fixes this for free).
+- Replace the in-memory store with pgvector
+- Provider fallback in `get_llm` — Groq primary, Anthropic secondary
+- Circuit breaker + timeouts on the LLM call
+- Multi-worker support (currently single-process due to the in-memory store; the pgvector swap fixes this for free)
 
 **Security**
-- Prompt-injection content scan at ingest. 1-2 days with an eval.
-- PII detection + redaction. 2 days.
-- Output filter for secret leakage. 1 day.
+- Prompt-injection content scan at ingest
+- PII detection + redaction
+- Output filter for secret leakage
 
 **Cost and observability**
-- Read actual usage from the provider billing API for authoritative cost. 1-2 days.
-- OpenTelemetry traces/metrics/logs instead of ad-hoc callbacks. 2 days.
-- Per-tenant cost dashboards. Half a day once OTel is in.
+- Read actual usage from the provider billing API for authoritative cost
+- OpenTelemetry traces/metrics/logs instead of ad-hoc callbacks
+- Per-tenant cost dashboards
 
 **Developer experience**
-- Prompts in a proper registry (Langfuse) with deploy gates tied to eval. 2-3 days.
-- ADRs for every notable decision, kept current. Ongoing.
-- A small `eval-watch` CLI that runs the eval set against a candidate prompt or model and prints a diff vs baseline. 1 day, big productivity win for the team.
+- Prompts in a proper registry (Langfuse) with deploy gates tied to eval
+- ADRs for every notable decision, kept current
+- A small `eval-watch` CLI that runs the eval set against a candidate prompt or model and prints a diff vs baseline
