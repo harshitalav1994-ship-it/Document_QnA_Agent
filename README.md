@@ -210,4 +210,3 @@ Grouped by theme, sized for honesty.
 - Prompts in a proper registry (Langfuse) with deploy gates tied to eval. 2-3 days.
 - ADRs for every notable decision, kept current. Ongoing.
 - A small `eval-watch` CLI that runs the eval set against a candidate prompt or model and prints a diff vs baseline. 1 day, big productivity win for the team.
-
