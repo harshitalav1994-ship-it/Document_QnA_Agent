@@ -1,11 +1,11 @@
 # 002 — Short-circuit when retrieval finds nothing relevant
 
-Date: during the build.
+Date: 21st May 2026
 Status: accepted, with caveats.
 
 ## Context
 
-A meaningful fraction of real production traffic to a doc-QA service is out-of-scope questions — users asking things the doc doesn't cover. Naively, every one of those goes through the full agent loop: tool call → LLM round trip → refusal. That's ~all the cost and latency of a normal request, for an answer we could have predicted before calling the model.
+A meaningful fraction of real production traffic to a Doc-QA service is out-of-scope questions — users asking things the doc doesn't cover. Naively, every one of those goes through the full agent loop: tool call → LLM round trip → refusal. That's all the cost and latency of a normal request, for an answer we could have predicted before calling the model.
 
 ## Decision
 

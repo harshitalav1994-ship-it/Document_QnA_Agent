@@ -1,11 +1,11 @@
 # 001 — Provider-agnostic LLM factory
 
-Date: during the build.
-Status: accepted.
+Date: 21st May 2026
+Status: accepted
 
 ## Context
 
-The brief says "use any LLM of your choice." Easy in the moment, but in a real system the LLM is the single most volatile dependency: pricing changes, models get deprecated, providers have outages, and "best model for this task" shifts every few months. Hardcoding the provider into agent code makes all of those into refactors.
+The brief says "use any LLM of your choice." In a real system the LLM is the single most volatile dependency: pricing changes, models get deprecated, providers have outages, and best model for this task reasoning shifts every few months. Hardcoding the provider into agent code makes all of those into refactors.
 
 ## Decision
 
@@ -21,7 +21,7 @@ API keys are read by the provider SDKs from environment, not passed explicitly. 
 ## Consequences
 
 - Each new provider needs an `if provider == "..."` branch and the matching `langchain-*` package. Acceptable.
-- The factory doesn't currently do retry/fallback. That's the natural next layer — when the primary provider 5xxs, fall through to a secondary. Out of scope for this iteration.
+- The factory doesn't currently do retry/fallback. That's the natural next layer — when the primary provider returns 5xx errors, fall through to a secondary. Out of scope for this iteration.
 
 ## What I'd revisit
 

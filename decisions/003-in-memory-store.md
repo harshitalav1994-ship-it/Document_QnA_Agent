@@ -1,6 +1,6 @@
 # 003 — In-memory store, deferred persistence
 
-Date: during the build.
+Date: 21st May 2026
 Status: accepted for this iteration, must be replaced before any real use.
 
 ## Context
@@ -23,8 +23,8 @@ The interface is intentionally tiny (`put`, `get`, `exists`, `delete`) so a Post
 
 - Single-process only. Two uvicorn workers will give you "doc not found" errors on half your requests because they don't share state. The Dockerfile launches a single worker; that's the constraint, not an accident.
 - No tenancy. `doc_id` is a UUID with no namespace.
-- The lock is fine-grained enough for the current workload but `_records.clear()` from tests reaches into the private attribute. Mild wart.
+- The lock is fine-grained enough for the current workload but `_records.clear()` from tests reaches into the private attribute.
 
 ## What I'd revisit
 
-This is the first thing I'd swap. The shape of the swap is clear: implement `PgVectorDocumentStore` against the same interface, ship migrations, add a tenant_id namespace at the same time. Two-day job done properly.
+This is the first thing I'd swap. The shape of the swap is clear: implement `PgVectorDocumentStore` against the same interface, ship migrations, add a tenant_id namespace at the same time.
