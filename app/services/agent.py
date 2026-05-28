@@ -33,6 +33,8 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.store import DocumentRecord
 from app.prompts.registry import get_prompt
+from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 
 logger = get_logger(__name__)
 
@@ -99,7 +101,7 @@ def _preflight_retrieval(record: DocumentRecord, query: str) -> list[tuple]:
     )
 
 
-def _build_retriever_tool(record: DocumentRecord) -> tuple[Tool, list[dict]]:
+def _build_retriever_tool(record: DocumentRecord) -> tuple[BaseTool, list[dict]]:
     """
     Retriever tool bound to one document.
 
@@ -127,15 +129,11 @@ def _build_retriever_tool(record: DocumentRecord) -> tuple[Tool, list[dict]]:
             return "No relevant content found in the document."
         return "\n\n---\n\n".join(rendered_parts)
 
-    tool = Tool(
-        name="retrieve_context",
-        description=(
-            "Retrieve the most relevant passages from the document for a "
-            "search query. Use this to find facts before answering."
-        ),
-        func=_retrieve,
-    )
-    return tool, captured_chunks
+    @tool
+    def retrieve_context(query: str) -> str:
+        """Retrieve the most relevant passages from the document for a search query. Use this to find facts before answering."""
+        return _retrieve(query)
+    return retrieve_context, captured_chunks
 
 
 def build_agent_executor(

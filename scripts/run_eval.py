@@ -12,7 +12,7 @@ For each case:
 
 Exits non-zero if any check fails. This is the shape you'd wire into CI.
 
-Caveats (read these before trusting the numbers):
+Caveats:
   - The grader uses the same LLM as the system under test. That's bad
     practice; the grader should be a stronger, independent model. Single
     key for the demo. Fix is a one-line change in _score().
